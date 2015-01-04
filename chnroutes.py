@@ -63,6 +63,37 @@ def generate_linux(metric):
     print "For pptp only, please copy the file ip-pre-up to the folder/etc/ppp," \
           "and copy the file ip-down to the folder /etc/ppp/ip-down.d."
 
+def generate_ulinux(metric):
+    results = fetch_ip_data()
+    upscript_header=textwrap.dedent("""\
+    #!/bin/bash
+    export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
+    
+    """)
+    
+    downscript_header=textwrap.dedent("""\
+    #!/bin/bash
+    export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
+    
+    """)
+    
+    upfile=open('ip-add','w')
+    downfile=open('ip-del','w')
+    
+    upfile.write(upscript_header)
+    upfile.write('RPSTR=`ip ro | grep $1 | awk \'{print $2,$3,$4,$5;}\'`\n')
+    upfile.write('\n')
+    downfile.write(downscript_header)
+    downfile.write('\n')
+    
+    for ip,_,umask in results:
+        upfile.write('ip route add %s/%s $RPSTR\n'%(ip,umask))
+        downfile.write('ip route del %s/%s\n'%(ip,umask))
+
+#    downfile.write('rm /tmp/vpn_oldgw\n')
+
+    print "Commplete!\n"
+
 def generate_mac(metric):
     results=fetch_ip_data()
     
@@ -249,6 +280,8 @@ if __name__=='__main__':
         generate_ovpn(args.metric)
     elif args.platform.lower() == 'linux':
         generate_linux(args.metric)
+    elif args.platform.lower() == 'ulinux':
+        generate_ulinux(args.metric)
     elif args.platform.lower() == 'mac':
         generate_mac(args.metric)
     elif args.platform.lower() == 'win':
