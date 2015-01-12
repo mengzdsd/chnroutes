@@ -1,0 +1,12 @@
+#!/bin/bash - 
+#===============================================================================
+#===============================================================================
+
+set -o nounset                              # Treat unset variables as an error
+
+PYTHON=`which python`
+GATEWAY="192.168.31.1"
+DEVICE="wlp11s0"
+
+echo "$PYTHON chnroutes.py -p ulinux -g $GATEWAY -d $DEVICE"
+$PYTHON chnroutes.py -p ulinux -g $GATEWAY -d $DEVICE

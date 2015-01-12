@@ -63,7 +63,7 @@ def generate_linux(metric):
     print "For pptp only, please copy the file ip-pre-up to the folder/etc/ppp," \
           "and copy the file ip-down to the folder /etc/ppp/ip-down.d."
 
-def generate_ulinux(metric):
+def generate_ulinux(gateway, device):
     results = fetch_ip_data()
     upscript_header=textwrap.dedent("""\
     #!/bin/bash
@@ -77,17 +77,15 @@ def generate_ulinux(metric):
     
     """)
     
-    upfile=open('ip-add','w')
-    downfile=open('ip-del','w')
+    upfile=open('ip-up','w')
+    downfile=open('ip-down','w')
     
     upfile.write(upscript_header)
-    upfile.write('RPSTR=`ip ro | grep $1 | awk \'{print $2,$3,$4,$5;}\'`\n')
-    upfile.write('\n')
+#    upfile.write('RPSTR=`ip ro | grep $1 | awk \'{print $2,$3,$4,$5;}\'`\n')
     downfile.write(downscript_header)
-    downfile.write('\n')
     
     for ip,_,umask in results:
-        upfile.write('ip route add %s/%s $RPSTR\n'%(ip,umask))
+        upfile.write('ip route add %s/%s via %s dev %s\n'%(ip,umask,gateway,device))
         downfile.write('ip route del %s/%s\n'%(ip,umask))
 
 #    downfile.write('rm /tmp/vpn_oldgw\n')
@@ -265,7 +263,7 @@ if __name__=='__main__':
                         dest='platform',
                         default='openvpn',
                         nargs='?',
-                        help="Target platforms, it can be openvpn, mac, linux," 
+                        help="Target platforms, it can be openvpn, mac, linux, ulinux" 
                         "win, android. openvpn by default.")
     parser.add_argument('-m','--metric',
                         dest='metric',
@@ -273,7 +271,17 @@ if __name__=='__main__':
                         nargs='?',
                         type=int,
                         help="Metric setting for the route rules")
-    
+    parser.add_argument('-g','--gateway',
+                        dest='gateway',
+                        default='192.168.1.1',
+                        nargs='?',
+                        help="The default gateway for internal route")
+    parser.add_argument('-d','--device',
+                        dest='device',
+                        default='eth0',
+                        nargs='?',
+                        help="The network interface for default")
+
     args = parser.parse_args()
     
     if args.platform.lower() == 'openvpn':
@@ -281,7 +289,7 @@ if __name__=='__main__':
     elif args.platform.lower() == 'linux':
         generate_linux(args.metric)
     elif args.platform.lower() == 'ulinux':
-        generate_ulinux(args.metric)
+        generate_ulinux(args.gateway, args.device)
     elif args.platform.lower() == 'mac':
         generate_mac(args.metric)
     elif args.platform.lower() == 'win':
